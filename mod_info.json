@@ -1,0 +1,20 @@
+{
+	"id":"wfg_loadout_sharing",
+	"name":"Loadout Sharing",
+	"author":"WolframSegler",
+	"version": "0.1.0",
+	"description":"Allows copying and pasting ship variants from the clipboard.",
+	"gameVersion":"0.98a-RC8",
+	"utility": true,
+	"jars": [
+        "jars/main/loadout_sharing.jar"
+    ],
+	"modPlugin": "wfg.loadout_sharing.plugin.LoadoutSharingModPlugin",
+	"dependencies": [
+        {
+            "id": "wfg_native_ui",
+            "name": "WrapUI",
+			"version": "0.4.3"
+        }
+    ]
+}
