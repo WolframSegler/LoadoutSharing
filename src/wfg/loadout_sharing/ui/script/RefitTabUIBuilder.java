@@ -3,95 +3,183 @@ package wfg.loadout_sharing.ui.script;
 
 import static wfg.native_ui.util.UIConstants.pad;
 
-import java.awt.Color;
-import java.util.HashMap;
+import java.awt.Toolkit;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.StringSelection;
+import java.awt.datatransfer.Transferable;
+import java.awt.datatransfer.UnsupportedFlavorException;
+import java.io.IOException;
 import java.util.List;
 
+import org.json.JSONObject;
+
 import com.fs.starfarer.api.Global;
-import com.fs.starfarer.api.campaign.econ.MarketAPI;
-import com.fs.starfarer.api.campaign.econ.SubmarketAPI;
-import com.fs.starfarer.api.fleet.FleetMemberAPI;
-import com.fs.starfarer.api.ui.ButtonAPI;
-import com.fs.starfarer.api.ui.UIComponentAPI;
+import com.fs.starfarer.api.campaign.CargoAPI;
+import com.fs.starfarer.api.campaign.CoreUITabId;
+import com.fs.starfarer.api.combat.ShipVariantAPI;
+import com.fs.starfarer.api.loading.VariantSource;
+import com.fs.starfarer.api.ui.Fonts;
 import com.fs.starfarer.api.ui.UIPanelAPI;
-import com.fs.starfarer.campaign.fleet.FleetMember;
+import com.fs.starfarer.loading.specs.HullVariantSpec;
 
 import rolflectionlib.util.RolfLectionUtil;
 import wfg.native_ui.ui.Attachments;
-import wfg.native_ui.ui.panel.CustomPanel;
-import wfg.native_ui.ui.visual.SpritePanel.Base;
+import wfg.native_ui.ui.functional.Button;
+import wfg.native_ui.ui.functional.Button.CutStyle;
 
 public class RefitTabUIBuilder implements CoreTabUIBuilder {
+    private static final int BTN_W = 50;
+    private static final int BTN_H = 12;
 
-    @SuppressWarnings("unchecked")
-    public void advance(float delta) {
-        final MarketAPI market = Global.getSector().getCurrentlyOpenMarket();
-        if (market == null) return;
+    private static Object getRefitPanelMethod = null;
+    private static Object getMemberMethod = null;
+    private static Object syncWithCurrVariantMethod = null;
+    private static Object recreateUIMethod = null;
+    private static Object getShipDisplayMethod = null;
+    private static Object getCurrentVariantMethod = null;
 
+    private boolean uiInjected = false;
+
+    @Override
+    public boolean isDone() {
+        return CoreTabUIBuilder.super.isDone() || uiInjected;
+    }
+
+    public final void advance(float delta) {
+        if (!CoreUITabId.REFIT.equals(Global.getSector().getCampaignUI().getCurrentCoreTab())) return;
         final UIPanelAPI masterTab = Attachments.getCurrentTab();
         if (masterTab == null) return;
 
-        final HashMap<String, ItemMarker> activeMarkers = ItemMarkersMap.instance().activeMarkers;
-        final UIPanelAPI marketPicker = (UIPanelAPI) RolfLectionUtil.getMethodAndInvokeDirectly("getMarketPicker", masterTab);
+        if (getRefitPanelMethod == null) getRefitPanelMethod = RolfLectionUtil.getMethodDeclared("getRefitPanel", masterTab.getClass());
+        final UIPanelAPI refitPanel = (UIPanelAPI) RolfLectionUtil.invokeMethodDirectly(getRefitPanelMethod, masterTab);
+        if (refitPanel == null) return;
+        if (getMemberMethod == null) getMemberMethod = RolfLectionUtil.getMethodDeclared("getMember", refitPanel.getClass());
+        if (syncWithCurrVariantMethod == null) syncWithCurrVariantMethod = RolfLectionUtil.getMethodDeclared("syncWithCurrentVariant", refitPanel.getClass(), 1);
+        if (recreateUIMethod == null) recreateUIMethod = RolfLectionUtil.getMethodDeclared("recreateUI", refitPanel.getClass());
 
-        if (marketPicker != null && !IdentityMarker.isPresent(marketPicker)) {
-            IdentityMarker.attach(marketPicker);
-    
-            final List<ButtonAPI> submarketButtons = (List<ButtonAPI>) RolfLectionUtil.getAllVariables(marketPicker).stream()
-                .filter(f -> f instanceof List).findFirst().orElse(null);
-    
-            for (ButtonAPI btn : submarketButtons) {
-                final SubmarketAPI submarket = ((SubmarketAPI)btn.getCustomData());
-    
-                submarket.getCargo().initMothballedShips(submarket.getFaction().getId());
-                for (FleetMemberAPI member : submarket.getCargo().getMothballedShips().getMembersListCopy()) {
-                    if (activeMarkers.containsKey(member.getHullSpec().getBaseHullId())) {
-                        final Base icon = new Base(marketPicker, 20, 20, Sprites.MARKER, null, null);
-                        marketPicker.addComponent(icon.getPanel()).rightOfTop(btn, -16);
-                        break;
-                    }
-                }
+        if (IdentityMarker.isPresent(refitPanel)) return;
+        IdentityMarker.attach(refitPanel);
+
+        injectButtons(refitPanel);
+
+        uiInjected = true;
+    }
+
+    private static final void injectButtons(final UIPanelAPI parent) {
+        final Button copyBtn = new Button(parent, BTN_W, BTN_H, "copy", Fonts.VICTOR_10, (btn) -> {
+            final HullVariantSpec spec = (HullVariantSpec) getActiveVariant(parent);
+            String variantJson = null;
+            try {
+                variantJson = spec.toJSONObject().toString();
+            } catch (Exception e) {} finally {
+                if (variantJson == null) variantJson = "failed to copy variant";
+            }
+            copyToClipboard(variantJson);
+        });
+
+        final Button pasteBtn = new Button(parent, BTN_W, BTN_H, "paste", Fonts.VICTOR_10, (btn) -> {
+            final ShipVariantAPI orgSpec = getActiveVariant(parent);
+            final ShipVariantAPI spec;
+            try {
+                final JSONObject data = new JSONObject(getClipboardText());
+                spec = new HullVariantSpec(data);
+            } catch (Exception e) {
+                Global.getLogger(RefitTabUIBuilder.class).warn("failed to paste variant");
+                return;
+            }
+
+            if (!spec.getHullSpec().getHullId().equals(orgSpec.getHullSpec().getHullId())) return;
+
+            spawVariants(getActiveVariant(parent), spec);
+            RolfLectionUtil.invokeMethodDirectly(syncWithCurrVariantMethod, parent, true);
+        });
+
+        copyBtn.cutStyle = CutStyle.TL_BR;
+        pasteBtn.cutStyle = CutStyle.TL_BR;
+        parent.addComponent(copyBtn.getPanel()).inBR(pad, pad);
+        parent.addComponent(pasteBtn.getPanel()).leftOfMid(copyBtn.getPanel(), pad);
+
+        copyBtn.tooltip.builder = (tp, expanded) -> {
+            tp.addPara("Copy the current variant to the clipboard", pad);
+        };
+        pasteBtn.tooltip.builder = (tp, expanded) -> {
+            tp.addPara("Paste the current variant from the clipboard", pad);
+        };
+    }
+
+    private static final void copyToClipboard(String text) {
+        StringSelection selection = new StringSelection(text);
+        Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+        clipboard.setContents(selection, null);
+    }
+
+    private static final String getClipboardText() {
+        final Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+        final Transferable transferable = clipboard.getContents(null);
+        final boolean validClipboard = transferable != null && transferable.isDataFlavorSupported(DataFlavor.stringFlavor);
+
+        String string = "";
+        if (validClipboard) {
+            try {
+                string = (String) transferable.getTransferData(DataFlavor.stringFlavor);
+            } catch (UnsupportedFlavorException | IOException e) {
+                Global.getLogger(RefitTabUIBuilder.class).warn("illegal clipboard content");
             }
         }
+        return string;
+    }
 
-        final SubmarketAPI submarket = (SubmarketAPI) RolfLectionUtil.getAllVariables(masterTab).stream()
-            .filter(f -> f instanceof SubmarketAPI).findFirst().orElse(null);
-        if (submarket == null) return;
-        final String buyVerb = submarket.getPlugin().getBuyVerb();
+    private static final UIPanelAPI getShipDisplay(UIPanelAPI refitPanel) {
+        if (getShipDisplayMethod == null) getShipDisplayMethod = RolfLectionUtil.getMethodDeclared("getShipDisplay", refitPanel.getClass());
+        return (UIPanelAPI) RolfLectionUtil.invokeMethodDirectly(getShipDisplayMethod, refitPanel);
+    }
 
-        boolean isInBuyMode = false;
-        for (Object panel : (List<Object>) RolfLectionUtil.invokeMethodDirectly(CustomPanel.getChildrenNonCopyMethod, masterTab)) {
-            if (panel instanceof ButtonAPI button && button.getText().startsWith(buyVerb) && button.isHighlighted()) {
-                isInBuyMode = true;
-                break;
-            }
+    private static final ShipVariantAPI getActiveVariant(UIPanelAPI refitPanel) {
+        final UIPanelAPI shipDisplay = getShipDisplay(refitPanel);
+
+        if (getCurrentVariantMethod == null) getCurrentVariantMethod = RolfLectionUtil.getMethodDeclared("getCurrentVariant", shipDisplay.getClass());
+        return (ShipVariantAPI) RolfLectionUtil.invokeMethodDirectly(getCurrentVariantMethod, shipDisplay);
+    }
+
+    private static final void spawVariants(ShipVariantAPI oldVariant, ShipVariantAPI newVariant) {
+        final CargoAPI playerCargo = Global.getSector().getPlayerFleet().getCargo();
+
+        oldVariant.setSource(VariantSource.REFIT);
+
+        for (String slotId : oldVariant.getNonBuiltInWeaponSlots()) {
+            final String weaponId = oldVariant.getWeaponId(slotId);
+            if (weaponId != null) playerCargo.addWeapons(weaponId, 1);
         }
-        if (!isInBuyMode) return;
 
-    
-        final UIPanelAPI fleetPanel = (UIPanelAPI) RolfLectionUtil.getMethodAndInvokeDirectly("getFleetPanel", masterTab);
-        if (fleetPanel == null) return;
-
-        final UIPanelAPI fleetList = (UIPanelAPI) RolfLectionUtil.getMethodAndInvokeDirectly("getList", fleetPanel);
-        final List<UIComponentAPI> widgets = (List<UIComponentAPI>) RolfLectionUtil.getMethodAndInvokeDirectly("getItems", fleetList);
-
-        for (UIComponentAPI widgetObj : widgets) {
-            final UIPanelAPI widget = (UIPanelAPI) widgetObj;
-
-            if (IdentityMarker.isPresent(widget)) continue;
-            IdentityMarker.attach(widget);
-
-            final FleetMemberAPI member = (FleetMember) RolfLectionUtil.getMethodAndInvokeDirectly("getMember", widget);
-
-            if (!activeMarkers.containsKey(member.getHullSpec().getBaseHullId())) continue;
-            final Base icon = new Base(widget, 20, 20, Sprites.MARKER, null, null);
-            widget.addComponent(icon.getPanel()).inBL(pad, 70);
-
-            if (VisualConfig.HIGHLIGHT_FRAME_ALPHA > 0f) {
-                final Base hue = new Base(widget, (int) widget.getPosition().getWidth(), (int) widget.getPosition().getHeight(), Sprites.HUE_FRAME, null, null);
-                widget.addComponent(hue.getPanel()).inBL(0f, 0f);
-                hue.texColor = new Color(1f, 1f, 1f, VisualConfig.HIGHLIGHT_FRAME_ALPHA);
-            }
+        for (String wingId : oldVariant.getNonBuiltInWings()) {
+            playerCargo.addFighters(wingId, 1);
         }
+        oldVariant.clear();
+
+        for (String slotId : newVariant.getNonBuiltInWeaponSlots()) {
+            final String weaponId = newVariant.getWeaponId(slotId);
+            if (playerCargo.getNumWeapons(weaponId) <= 0) continue;
+            playerCargo.removeWeapons(weaponId, 1);
+            oldVariant.addWeapon(slotId, weaponId);
+        }
+        
+        final List<String> wings = newVariant.getWings();
+        for (int i = 0; i < wings.size(); i++) {
+            if (oldVariant.getHullSpec().isBuiltInWing(i)) continue;
+            final String wingId = wings.get(i);
+            if (playerCargo.getNumFighters(wingId) <= 0) continue;
+            playerCargo.removeFighters(wingId, 1);
+
+            oldVariant.setWingId(i, wingId);
+        }
+
+        for (String modId : newVariant.getNonBuiltInHullmods()) {
+            if (oldVariant.hasHullMod(modId)) continue;
+            oldVariant.addMod(modId);
+        }
+
+        oldVariant.setNumFluxCapacitors(newVariant.getNumFluxCapacitors());
+        oldVariant.setNumFluxVents(newVariant.getNumFluxVents());
     }
 }
