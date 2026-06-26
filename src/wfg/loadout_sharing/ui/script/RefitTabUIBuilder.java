@@ -16,8 +16,11 @@ import org.json.JSONObject;
 
 import com.fs.starfarer.api.Global;
 import com.fs.starfarer.api.campaign.CargoAPI;
+import com.fs.starfarer.api.campaign.CharacterDataAPI;
 import com.fs.starfarer.api.campaign.CoreUITabId;
+import com.fs.starfarer.api.campaign.econ.MarketAPI;
 import com.fs.starfarer.api.combat.ShipVariantAPI;
+import com.fs.starfarer.api.impl.campaign.ids.Submarkets;
 import com.fs.starfarer.api.loading.VariantSource;
 import com.fs.starfarer.api.ui.Fonts;
 import com.fs.starfarer.api.ui.UIPanelAPI;
@@ -143,7 +146,12 @@ public class RefitTabUIBuilder implements CoreTabUIBuilder {
     }
 
     private static final void spawVariants(ShipVariantAPI oldVariant, ShipVariantAPI newVariant) {
+        final CharacterDataAPI characterData = Global.getSector().getCharacterData();
+        final MarketAPI openMarket = Global.getSector().getCurrentlyOpenMarket();
+        final CargoAPI planetCargo = openMarket == null ? null : openMarket.hasSubmarket(Submarkets.SUBMARKET_STORAGE)
+            ? openMarket.getSubmarket(Submarkets.SUBMARKET_STORAGE).getCargo() : null;
         final CargoAPI playerCargo = Global.getSector().getPlayerFleet().getCargo();
+        final boolean hasStorage = planetCargo != null;
 
         oldVariant.setSource(VariantSource.REFIT);
 
@@ -159,8 +167,11 @@ public class RefitTabUIBuilder implements CoreTabUIBuilder {
 
         for (String slotId : newVariant.getNonBuiltInWeaponSlots()) {
             final String weaponId = newVariant.getWeaponId(slotId);
-            if (playerCargo.getNumWeapons(weaponId) <= 0) continue;
-            playerCargo.removeWeapons(weaponId, 1);
+            final boolean playerHasWeapon = playerCargo.getNumWeapons(weaponId) > 0;
+            final boolean storageHasWeapon = hasStorage && planetCargo.getNumWeapons(weaponId) > 0;
+            if (!playerHasWeapon && !storageHasWeapon) continue;
+            if (playerHasWeapon) playerCargo.removeWeapons(weaponId, 1);
+            else planetCargo.removeWeapons(weaponId, 1);
             oldVariant.addWeapon(slotId, weaponId);
         }
         
@@ -168,14 +179,16 @@ public class RefitTabUIBuilder implements CoreTabUIBuilder {
         for (int i = 0; i < wings.size(); i++) {
             if (oldVariant.getHullSpec().isBuiltInWing(i)) continue;
             final String wingId = wings.get(i);
-            if (playerCargo.getNumFighters(wingId) <= 0) continue;
-            playerCargo.removeFighters(wingId, 1);
-
+            final boolean playerHasWing = playerCargo.getNumFighters(wingId) > 0;
+            final boolean storageHasWing = hasStorage && planetCargo.getNumFighters(wingId) > 0;
+            if (!playerHasWing && !storageHasWing) continue;
+            if (playerHasWing) playerCargo.removeFighters(wingId, 1);
+            else planetCargo.removeFighters(wingId, 1);
             oldVariant.setWingId(i, wingId);
         }
 
         for (String modId : newVariant.getNonBuiltInHullmods()) {
-            if (oldVariant.hasHullMod(modId)) continue;
+            if (oldVariant.hasHullMod(modId) || !characterData.knowsHullMod(modId)) continue;
             oldVariant.addMod(modId);
         }
 

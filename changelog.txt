@@ -1,2 +1,6 @@
+Version 0.2.0
+- Check whether if the hull mod is discovered by the player.
+- Check local storage inventory as well.
+
 Version 0.1.0
 - Initial release
