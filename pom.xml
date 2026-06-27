@@ -6,7 +6,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>loadout_sharing</groupId>
   <artifactId>Loadout-Sharing</artifactId>
-  <version>0.2.0</version>
+  <version>0.3.0</version>
   <packaging>jar</packaging>
   <name>Loadout Sharing</name>
 
