@@ -1,7 +1,7 @@
 
 package wfg.loadout_sharing.ui.script;
 
-import static wfg.native_ui.util.UIConstants.pad;
+import static wfg.native_ui.util.UIConstants.*;
 
 import java.awt.Toolkit;
 import java.awt.datatransfer.Clipboard;
@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.util.List;
 
 import org.json.JSONObject;
+import org.lwjgl.input.Keyboard;
 
 import com.fs.starfarer.api.Global;
 import com.fs.starfarer.api.campaign.CargoAPI;
@@ -28,8 +29,11 @@ import com.fs.starfarer.loading.specs.HullVariantSpec;
 
 import rolflectionlib.util.RolfLectionUtil;
 import wfg.native_ui.ui.Attachments;
+import wfg.native_ui.ui.component.InteractionComp.ShortcutHandler;
 import wfg.native_ui.ui.functional.Button;
 import wfg.native_ui.ui.functional.Button.CutStyle;
+import wfg.native_ui.util.NativeUiUtils;
+import wfg.native_ui.util.NativeUiUtils.AnchorType;
 
 public class RefitTabUIBuilder implements CoreTabUIBuilder {
     private static final int BTN_W = 50;
@@ -79,7 +83,12 @@ public class RefitTabUIBuilder implements CoreTabUIBuilder {
                 if (variantJson == null) variantJson = "failed to copy variant";
             }
             copyToClipboard(variantJson);
-        });
+        }) {{
+            final ShortcutHandler<Button> OnShortcut = interaction.onShortcutPressed;
+            interaction.onShortcutPressed = (btn, event) -> {
+                if (NativeUiUtils.isCtrlDown()) OnShortcut.run(btn, event);
+            };
+        }};
 
         final Button pasteBtn = new Button(parent, BTN_W, BTN_H, "paste", Fonts.VICTOR_10, (btn) -> {
             final ShipVariantAPI orgSpec = getActiveVariant(parent);
@@ -96,18 +105,27 @@ public class RefitTabUIBuilder implements CoreTabUIBuilder {
 
             spawVariants(getActiveVariant(parent), spec);
             RolfLectionUtil.invokeMethodDirectly(syncWithCurrVariantMethod, parent, true);
-        });
+        }) {{
+            final ShortcutHandler<Button> OnShortcut = interaction.onShortcutPressed;
+            interaction.onShortcutPressed = (btn, event) -> {
+                if (NativeUiUtils.isCtrlDown()) OnShortcut.run(btn, event);
+            };
+        }};
 
+        copyBtn.setShortcut(Keyboard.KEY_C);
+        pasteBtn.setShortcut(Keyboard.KEY_V);
         copyBtn.cutStyle = CutStyle.TL_BR;
         pasteBtn.cutStyle = CutStyle.TL_BR;
         parent.addComponent(copyBtn.getPanel()).inBR(pad, pad);
         parent.addComponent(pasteBtn.getPanel()).leftOfMid(copyBtn.getPanel(), pad);
 
+        copyBtn.tooltip.positioner = (tp, exp) -> NativeUiUtils.anchorPanel(tp, copyBtn.getPanel(), AnchorType.TopRight, hpad);
+        pasteBtn.tooltip.positioner = (tp, exp) -> NativeUiUtils.anchorPanel(tp, pasteBtn.getPanel(), AnchorType.TopRight, hpad);
         copyBtn.tooltip.builder = (tp, expanded) -> {
-            tp.addPara("Copy the current variant to the clipboard", pad);
+            tp.addPara("Copy the current variant to the clipboard [Ctrl-C]", pad, highlight, "Ctrl-C");
         };
         pasteBtn.tooltip.builder = (tp, expanded) -> {
-            tp.addPara("Paste the current variant from the clipboard", pad);
+            tp.addPara("Paste the current variant from the clipboard [Ctrl-V]", pad, highlight, "Ctrl-V");
         };
     }
 
