@@ -6,7 +6,7 @@ Starsector mod that allows copying and pasting ship variants from the clipboard.
 
 
 ## Forum Page
-Content details related to the mod can be found on [the fractalsoftworks forums](https://fractalsoftworks.com/forum/index.php?topic=0).
+Content details related to the mod can be found on [the fractalsoftworks forums](https://fractalsoftworks.com/forum/index.php?topic=35658).
 
 ## Credits
 
