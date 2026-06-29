@@ -1,4 +1,7 @@
 Version 0.3.0
+- Fixed a bug forcing clicks to hold ctrl to work.
+
+Version 0.3.0
 - Switched to WrapUI v0.4.4 and previous versions won't work.
 - Added shortcuts to the copy and paste buttons.
 

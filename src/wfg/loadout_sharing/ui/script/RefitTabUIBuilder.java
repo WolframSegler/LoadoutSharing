@@ -86,7 +86,7 @@ public class RefitTabUIBuilder implements CoreTabUIBuilder {
         }) {{
             final ShortcutHandler<Button> OnShortcut = interaction.onShortcutPressed;
             interaction.onShortcutPressed = (btn, event) -> {
-                if (NativeUiUtils.isCtrlDown()) OnShortcut.run(btn, event);
+                if (NativeUiUtils.isCtrlDown() || event == null) OnShortcut.run(btn, event);
             };
         }};
 
@@ -108,7 +108,7 @@ public class RefitTabUIBuilder implements CoreTabUIBuilder {
         }) {{
             final ShortcutHandler<Button> OnShortcut = interaction.onShortcutPressed;
             interaction.onShortcutPressed = (btn, event) -> {
-                if (NativeUiUtils.isCtrlDown()) OnShortcut.run(btn, event);
+                if (NativeUiUtils.isCtrlDown() || event == null) OnShortcut.run(btn, event);
             };
         }};
 
