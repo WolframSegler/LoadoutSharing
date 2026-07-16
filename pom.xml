@@ -69,7 +69,7 @@
       <artifactId>native_ui</artifactId>
       <version>1.0</version>
       <scope>system</scope>
-      <systemPath>${project.basedir}/../WrapUI/jars/main/native_ui.jar</systemPath>
+      <systemPath>${project.basedir}/../NativeUI/jars/main/native_ui.jar</systemPath>
     </dependency>
     <dependency>
       <groupId>local</groupId>
@@ -132,7 +132,7 @@
       <artifactId>reflection</artifactId>
       <version>1.0</version>
       <scope>system</scope>
-      <systemPath>${project.basedir}/../WrapUI/jars/libs/RolflectionLib.jar</systemPath>
+      <systemPath>${project.basedir}/../NativeUI/jars/libs/RolflectionLib.jar</systemPath>
     </dependency>
 
     <dependency>

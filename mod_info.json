@@ -2,7 +2,7 @@
 	"id":"wfg_loadout_sharing",
 	"name":"Loadout Sharing",
 	"author":"WolframSegler",
-	"version": "0.4.0",
+	"version": "0.5.0",
 	"description":"Allows copying and pasting ship variants from the clipboard.",
 	"gameVersion":"0.98a-RC8",
 	"utility": true,
@@ -13,8 +13,8 @@
 	"dependencies": [
         {
             "id": "wfg_native_ui",
-            "name": "WrapUI",
-			"version": "0.4.4"
+            "name": "NativeUI",
+			"version": "0.5.0"
         }
     ]
 }
