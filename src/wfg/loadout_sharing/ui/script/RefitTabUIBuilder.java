@@ -29,9 +29,10 @@ import com.fs.starfarer.loading.specs.HullVariantSpec;
 
 import rolflectionlib.util.RolfLectionUtil;
 import wfg.native_ui.ui.Attachments;
-import wfg.native_ui.ui.component.InteractionComp.ShortcutHandler;
-import wfg.native_ui.ui.functional.Button;
-import wfg.native_ui.ui.functional.Button.CutStyle;
+import wfg.native_ui.ui.functional.ShortcutHandler;
+import wfg.native_ui.ui.util.IdentityMarker;
+import wfg.native_ui.ui.widget.Button;
+import wfg.native_ui.ui.widget.Button.CutStyle;
 import wfg.native_ui.util.NativeUiUtils;
 import wfg.native_ui.util.NativeUiUtils.AnchorType;
 
@@ -74,7 +75,7 @@ public class RefitTabUIBuilder implements CoreTabUIBuilder {
     }
 
     private static final void injectButtons(final UIPanelAPI parent) {
-        final Button copyBtn = new Button(parent, BTN_W, BTN_H, "copy", Fonts.VICTOR_10, (btn) -> {
+        final Button copyBtn = new Button(BTN_W, BTN_H, "copy", Fonts.VICTOR_10, (btn) -> {
             final HullVariantSpec spec = (HullVariantSpec) getActiveVariant(parent);
             String variantJson = null;
             try {
@@ -90,7 +91,7 @@ public class RefitTabUIBuilder implements CoreTabUIBuilder {
             };
         }};
 
-        final Button pasteBtn = new Button(parent, BTN_W, BTN_H, "paste", Fonts.VICTOR_10, (btn) -> {
+        final Button pasteBtn = new Button(BTN_W, BTN_H, "paste", Fonts.VICTOR_10, (btn) -> {
             final ShipVariantAPI orgSpec = getActiveVariant(parent);
             final ShipVariantAPI spec;
             try {
@@ -114,13 +115,13 @@ public class RefitTabUIBuilder implements CoreTabUIBuilder {
 
         copyBtn.setShortcut(Keyboard.KEY_C);
         pasteBtn.setShortcut(Keyboard.KEY_V);
-        copyBtn.cutStyle = CutStyle.TL_BR;
-        pasteBtn.cutStyle = CutStyle.TL_BR;
-        parent.addComponent(copyBtn.getPanel()).inBR(pad, pad);
-        parent.addComponent(pasteBtn.getPanel()).leftOfMid(copyBtn.getPanel(), pad);
+        copyBtn.setCutStyle(CutStyle.TL_BR);
+        pasteBtn.setCutStyle(CutStyle.TL_BR);
+        parent.addComponent(copyBtn).inBR(pad, pad);
+        parent.addComponent(pasteBtn).leftOfMid(copyBtn, pad);
 
-        copyBtn.tooltip.positioner = (tp, exp) -> NativeUiUtils.anchorPanel(tp, copyBtn.getPanel(), AnchorType.TopRight, hpad);
-        pasteBtn.tooltip.positioner = (tp, exp) -> NativeUiUtils.anchorPanel(tp, pasteBtn.getPanel(), AnchorType.TopRight, hpad);
+        copyBtn.tooltip.positioner = (tp, exp) -> NativeUiUtils.anchorPanel(tp, copyBtn, AnchorType.TopRight, hpad);
+        pasteBtn.tooltip.positioner = (tp, exp) -> NativeUiUtils.anchorPanel(tp, pasteBtn, AnchorType.TopRight, hpad);
         copyBtn.tooltip.builder = (tp, expanded) -> {
             tp.addPara("Copy the current variant to the clipboard [Ctrl-C]", pad, highlight, "Ctrl-C");
         };
@@ -130,8 +131,8 @@ public class RefitTabUIBuilder implements CoreTabUIBuilder {
     }
 
     private static final void copyToClipboard(String text) {
-        StringSelection selection = new StringSelection(text);
-        Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+        final StringSelection selection = new StringSelection(text);
+        final Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
         clipboard.setContents(selection, null);
     }
 
