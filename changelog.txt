@@ -1,6 +1,7 @@
 version 0.5.0
 - Switched to NativeUI (formerly WrapUI) v0.5.0 and previous versions won't work.
 - Added the same buttons to the refit screen in the main menu.
+- Unknown hullmods will no longer be removed if the variant before the paste had them already.
 
 Version 0.4.0
 - Fixed a bug forcing clicks to hold ctrl to work.

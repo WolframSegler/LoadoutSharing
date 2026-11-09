@@ -10,7 +10,9 @@ import java.awt.datatransfer.StringSelection;
 import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.UnsupportedFlavorException;
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.json.JSONObject;
 import org.lwjgl.input.Keyboard;
@@ -77,11 +79,12 @@ public final class ButtonPairBuilder {
 
             if (settings.getCurrentState() == GameState.CAMPAIGN) {
                 spawVariants(getActiveVariant(refitPanel), spec);
-                syncWithCurrentVariant(refitPanel);
             } else {
                 syncWithVariant(refitPanel, spec);
             }
-            
+
+            syncWithCurrentVariant(refitPanel);
+
         }) {{
             final ShortcutHandler<Button> OnShortcut = interaction.onShortcutPressed;
             interaction.onShortcutPressed = (btn, event) -> {
@@ -129,8 +132,6 @@ public final class ButtonPairBuilder {
     }
 
     private static final void spawVariants(ShipVariantAPI oldVariant, ShipVariantAPI newVariant) {
-        if (settings.getCurrentState() != GameState.CAMPAIGN) return;
-
         final CharacterDataAPI characterData = Global.getSector().getCharacterData();
         final MarketAPI openMarket = Global.getSector().getCurrentlyOpenMarket();
         final CargoAPI planetCargo = openMarket == null ? null : openMarket.hasSubmarket(Submarkets.SUBMARKET_STORAGE)
@@ -148,6 +149,8 @@ public final class ButtonPairBuilder {
         for (String wingId : oldVariant.getNonBuiltInWings()) {
             playerCargo.addFighters(wingId, 1);
         }
+
+        final Set<String> oldHullmods = new HashSet<>(oldVariant.getNonBuiltInHullmods());
         oldVariant.clear();
 
         for (String slotId : newVariant.getNonBuiltInWeaponSlots()) {
@@ -173,7 +176,7 @@ public final class ButtonPairBuilder {
         }
 
         for (String modId : newVariant.getNonBuiltInHullmods()) {
-            if (oldVariant.hasHullMod(modId) || !characterData.knowsHullMod(modId)) continue;
+            if (!characterData.knowsHullMod(modId) && !oldHullmods.contains(modId)) continue;
             oldVariant.addMod(modId);
         }
 
@@ -201,7 +204,7 @@ public final class ButtonPairBuilder {
     private static final void syncWithVariant(final UIPanelAPI refitPanel, ShipVariantAPI variant) {
         final UIPanelAPI shipDisplay = getShipDisplay(refitPanel);
 
-        if (syncWithVariantMethod == null) syncWithVariantMethod = RolfLectionUtil.getMethodDeclared("syncWithVariant", shipDisplay.getClass());
-        RolfLectionUtil.invokeMethodDirectly(syncWithVariantMethod, shipDisplay);
+        if (syncWithVariantMethod == null) syncWithVariantMethod = RolfLectionUtil.getMethodDeclared("syncWithVariant", shipDisplay.getClass(), 1);
+        RolfLectionUtil.invokeMethodDirectly(syncWithVariantMethod, shipDisplay, variant);
     }
 }
