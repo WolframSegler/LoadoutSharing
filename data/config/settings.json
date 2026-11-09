@@ -1,0 +1,5 @@
+{
+    "plugins": {
+        "TitleScreenRefitTabUIBuilder": "wfg.loadout_sharing.ui.script.TitleScreenRefitTabUIBuilder"
+    }
+}

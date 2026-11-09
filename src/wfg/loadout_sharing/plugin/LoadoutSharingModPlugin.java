@@ -4,7 +4,7 @@ import com.fs.starfarer.api.BaseModPlugin;
 import com.fs.starfarer.api.Global;
 import wfg.loadout_sharing.ui.script.UIInjectorListener;
 
-public class LoadoutSharingModPlugin extends BaseModPlugin {
+public final class LoadoutSharingModPlugin extends BaseModPlugin {
 
     @Override
     public void onGameLoad(boolean newGame) {
