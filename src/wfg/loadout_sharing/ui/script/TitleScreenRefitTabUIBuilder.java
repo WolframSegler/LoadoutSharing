@@ -14,6 +14,7 @@ import com.fs.starfarer.api.ui.UIPanelAPI;
 import rolflectionlib.util.RolfLectionUtil;
 import wfg.native_ui.ui.Attachments;
 import wfg.native_ui.ui.MethodFields;
+import wfg.native_ui.ui.util.IdentityMarker;
 
 public final class TitleScreenRefitTabUIBuilder extends BaseEveryFrameCombatPlugin {
     private boolean inTitleScreen;
@@ -53,8 +54,12 @@ public final class TitleScreenRefitTabUIBuilder extends BaseEveryFrameCombatPlug
         final UIComponentAPI dialogContent = (UIComponentAPI) RolfLectionUtil.getMethodAndInvokeDirectly("getCurr", target);
         if (dialogContent == null) return;
 
-        final UIPanelAPI refitTab = RefitTabUIBuilder.getRefitPanel((UIPanelAPI) dialogContent);
-        ButtonPairBuilder.injectButtons(refitTab);
+        final UIPanelAPI refitPanel = RefitTabUIBuilder.getRefitPanel((UIPanelAPI) dialogContent);
+
+        if (IdentityMarker.isPresent(refitPanel)) return;
+        IdentityMarker.attach(refitPanel);
+
+        ButtonPairBuilder.injectButtons(refitPanel);
     }
 
     private static final boolean isTargetSize(final UIComponentAPI comp, float w, float h) {
