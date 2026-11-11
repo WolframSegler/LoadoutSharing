@@ -12,8 +12,6 @@ import com.fs.starfarer.api.ui.UIComponentAPI;
 import com.fs.starfarer.api.ui.UIPanelAPI;
 
 import rolflectionlib.util.RolfLectionUtil;
-import wfg.native_ui.ui.Attachments;
-import wfg.native_ui.ui.MethodFields;
 import wfg.native_ui.ui.util.IdentityMarker;
 
 public final class TitleScreenRefitTabUIBuilder extends BaseEveryFrameCombatPlugin {
@@ -28,10 +26,10 @@ public final class TitleScreenRefitTabUIBuilder extends BaseEveryFrameCombatPlug
     public void advance(float delta, List<InputEventAPI> events) {
         if (!inTitleScreen) return;
 
-        final UIPanelAPI screen = Attachments.getTitleScreenPanel();
+        final UIPanelAPI screen = settings.getScreenPanel();
 
         UIPanelAPI targetOuter2 = null;
-        for (final UIComponentAPI child : MethodFields.getChildrenNonCopy(screen)) {
+        for (final UIComponentAPI child : screen.getChildrenCopy2()) {
             if (!isTargetSize(child, 1024f, 768f)) continue;
 
             if (!RolfLectionUtil.hasMethodOfName("isSuspendEventInterception", child)) continue;
@@ -41,10 +39,10 @@ public final class TitleScreenRefitTabUIBuilder extends BaseEveryFrameCombatPlug
         }
         if (targetOuter2 == null) return;
 
-        final UIPanelAPI targetOuter = (UIPanelAPI) MethodFields.getChildrenNonCopy(targetOuter2).get(0);
+        final UIPanelAPI targetOuter = (UIPanelAPI) targetOuter2.getChildrenCopy2().get(0);
 
         UIComponentAPI target = null;
-        for (final UIComponentAPI child : MethodFields.getChildrenNonCopy(targetOuter)) {
+        for (final UIComponentAPI child : targetOuter.getChildrenCopy2()) {
             if (!isTargetSize(child, 1024f, 748f)) continue;
 
             target = child;

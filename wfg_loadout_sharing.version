@@ -7,7 +7,7 @@
 		"minor":5,
 		"patch":0
 	},
-	"starsectorVersion":"0.98a-RC8",
+	"starsectorVersion":"0.98.5a-RC4",
 	"directDownloadURL":"https://github.com/WolframSegler/LoadoutSharing/releases/latest/download/LoadoutSharing.zip",
 	"changelogURL":"https://raw.githubusercontent.com/WolframSegler/LoadoutSharing/main/changelog.txt"
 }
